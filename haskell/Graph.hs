@@ -73,7 +73,7 @@ shortestPath (Graph links) metric start goal = loop a0
 
 ------------------------------------------------------------
 
-main = let
+task = let
   g = grid 9 9 `withHole` wall
   wall = [ (2,4),(2,5),(2,6),(3,6)
          , (4,6),(5,6),(5,5),(5,4)
