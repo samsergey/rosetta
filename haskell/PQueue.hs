@@ -5,7 +5,7 @@ module PQueue where
 -- The simplest FIFO priority queue is implemented after Sleator and Tarjan in Louis Wasserman's ("Playing with Priority Queues")[https://themonadreader.files.wordpress.com/2010/05/issue16.pdf].
 
 data PQueue a = EmptyQueue
-              | Node (Int, a) (PQueue a) (PQueue a)
+              | Node !(Int, a) !(PQueue a) !(PQueue a)
   deriving (Show, Foldable)
 
 instance Ord a => Semigroup (PQueue a) where

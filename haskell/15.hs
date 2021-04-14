@@ -1,15 +1,18 @@
 {-# language DeriveFunctor #-}
 {-# language TupleSections #-}
 
+module Main where
+
 import Data.Maybe
-import Data.Map (Map (..))
-import qualified Data.Map as Map
+import Data.Map.Strict (Map (..))
+import qualified Data.Map.Strict as Map
 import Control.Applicative
 import Control.Monad
-import Graph (Graph (..))
+import Graph (Graph (..), findPath)
 import Align (levenshteinDistance)
 
-data Zip a = Zip [a] [a] deriving (Show, Functor, Eq, Ord) 
+data Zip a = Zip ![a] ![a]
+  deriving (Show, Functor, Eq, Ord) 
 
 fromList :: [a] -> Zip a
 fromList [] = Zip [] []
@@ -33,8 +36,11 @@ type Board a = Zip (Zip a)
 board :: [[a]] -> Board a
 board lst = fromList $ fromList <$> lst
 
-brd = board [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,0]]
+cursorAt :: (Int, Int) -> Board a -> Board a
+cursorAt (i, j) b = rep i shiftR $ rep j (fmap shiftR) $ b
+  where rep n = foldl (.) id . replicate n
 
+flatten :: Board a -> [a]
 flatten = toList >=> toList
 
 ------------------------------------------------------------
@@ -63,14 +69,31 @@ moveA b m = case m of
     _ -> empty
 
 gameGraph :: Ord a => Graph (Board a)
-gameGraph = Graph $ \b -> Map.fromList ((,1) <$> ([R,L,U,D] >>= moveA b))                                        
-distL2 b1 b2 = sum $ map (^2) $ zipWith (-) (flatten b1) (flatten b2)
-distLv b1 b2 = levenshteinDistance (flatten b1) (flatten b2)
-distL1 b1 b2 = sum $ map abs $ zipWith (-) (flatten b1) (flatten b2)
-distLinf b1 b2 = maximum $ map abs $ zipWith (-) (flatten b1) (flatten b2)
+gameGraph = Graph $ \b -> Map.fromList ((,1) <$> ([R,L,U,D] >>= moveA b))
 
-start = board [[15, 14,  1,  6],[ 9, 11,  4, 12],[ 0, 10,  7,  3], [13,  8,  5,  2]]
+distL1 b1 b2 = sum $ map abs $ zipWith (-) (flatten b1) (flatten b2)
+
+task :: Board Int
+task = cursorAt (2,0) $
+  board [ [15, 14,  1,  6]
+        , [ 9, 11,  4, 12]
+        , [ 0, 10,  7,  3]
+        , [13,  8,  5,  2] ]
+
+goal :: Board Int
+goal = cursorAt (3,3) $
+  board [ [1,  2,  3,  4 ]
+        , [5,  6,  7,  8 ]
+        , [9,  10, 11, 12]
+        , [13, 14, 15, 0 ] ]
 
 prnt b = do
   mapM_ print $ toList $ toList <$> b
   putStr "\n"
+
+s1 = foldl (flip move) goal [L,L,U,L,U,R,R,L,D,R,U,U,L,L,D,D,R,D,D,R,U,U,R,L]
+
+main = do
+  print (length p)
+  mapM_ prnt p
+  where p = findPath gameGraph distL1 task goal
