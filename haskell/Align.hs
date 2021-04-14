@@ -1,5 +1,7 @@
+module Align where
+
 -- The Wagner–Fischer matrix, adopted from (Levenstein distance)[https://rosettacode.org/wiki/Category:Haskell]. Matrix is reversed in order to simplify it's traversing. 
-costs :: String -> String -> [[Int]]
+costs :: Eq a => [a] -> [a] -> [[Int]]
 costs s1 s2 = reverse $ reverse <$> matrix
   where
     matrix = scanl transform [0 .. length s1] s2
@@ -8,7 +10,7 @@ costs s1 s2 = reverse $ reverse <$> matrix
         calc z (c1, x, y) = minimum [ y + 1, z + 1
                                     , x + fromEnum (c1 /= c)]
 
-levenshteinDistance :: String -> String -> Int
+levenshteinDistance :: Eq a => [a] -> [a] -> Int
 levenshteinDistance s1 s2 = head.head $ costs s1 s2
 
 -- {{trans|Java}}
