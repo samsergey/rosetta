@@ -1,4 +1,8 @@
-module Graph where
+module Graph
+  ( findPath
+  , Graph (..) )
+
+where
 
 import Data.PriorityQueue.FingerTree (PQueue (..))
 import qualified Data.PriorityQueue.FingerTree as Queue

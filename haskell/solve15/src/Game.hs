@@ -1,15 +1,17 @@
 {-# language DeriveFunctor #-}
 {-# language TupleSections #-}
 
-module Main where
+module Game where
 
 import Data.Maybe
 import Data.Map.Strict (Map (..))
 import qualified Data.Map.Strict as Map
 import Control.Applicative
 import Control.Monad
+
 import Graph (Graph (..), findPath)
-import Align (levenshteinDistance)
+
+-- import Align (levenshteinDistance)
 
 data Zip a = Zip ![a] ![a]
   deriving (Show, Functor, Eq, Ord) 
@@ -73,28 +75,8 @@ gameGraph = Graph $ \b -> Map.fromList ((,1) <$> ([R,L,U,D] >>= moveA b))
 
 distL1 b1 b2 = sum $ map abs $ zipWith (-) (flatten b1) (flatten b2)
 
-task :: Board Int
-task = cursorAt (2,0) $
-  board [ [15, 14,  1,  6]
-        , [ 9, 11,  4, 12]
-        , [ 0, 10,  7,  3]
-        , [13,  8,  5,  2] ]
-
-goal :: Board Int
-goal = cursorAt (3,3) $
-  board [ [1,  2,  3,  4 ]
-        , [5,  6,  7,  8 ]
-        , [9,  10, 11, 12]
-        , [13, 14, 15, 0 ] ]
-
 prnt b = do
   mapM_ print $ toList $ toList <$> b
   putStr "\n"
 
 
-s1 = foldl (flip move) goal [L,L,U,L,U,R,R,L,D,R,U,L,U,L,L,D,D,R,D,D,R,U,U,R,L,D,R,U,U,R,L]
-
-main = do
-  print (length p)
-  mapM_ prnt p
-  where p = findPath gameGraph distL1 task goal
