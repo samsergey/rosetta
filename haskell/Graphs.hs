@@ -1,11 +1,11 @@
-module Graph where
+module Graphs where
 
 import Data.PriorityQueue.FingerTree (PQueue (..))
 import qualified Data.PriorityQueue.FingerTree as Queue
 import Data.Set (Set(..))
 import qualified Data.Set as Set
-import Data.Map.Strict (Map(..))
-import qualified Data.Map.Strict as Map
+import Data.Map (Map(..))
+import qualified Data.Map as Map
 import Data.List (unfoldr)
   
 ------------------------------------------------------------
@@ -41,7 +41,8 @@ set m k x = Map.insert k x m
 data AstarData n = SetData { cameFrom :: Map n n
                            , gScore   :: Map n Int
                            , openSet  :: PQueue Int n
-                           , visited  :: Set n }
+                           , visited  :: Set n
+                           }
 
 findPath
   :: Ord n => Graph n -> (n -> n -> Int) -> n -> n -> [n]
@@ -51,7 +52,8 @@ findPath (Graph links) metric start goal = loop a0
          { cameFrom = mempty
          , gScore   = Map.singleton start 0
          , openSet  = Queue.singleton (h start) start
-         , visited  = mempty }
+         , visited  = mempty
+         }
     h = metric goal
     dist = get . links
 
@@ -61,12 +63,15 @@ findPath (Graph links) metric start goal = loop a0
                             then getPath (cameFrom a)
                             else loop a'
         where
-          a' = Map.foldlWithKey go a { openSet = q'
-                                     , visited = Set.insert current (visited a) } neighbours
+          a' = Map.foldlWithKey' go a { openSet = q'
+                                      , visited = Set.insert current (visited a)
+                                      } neighbours
           neighbours = links current
+          d = dist current
+          go a n _ | Set.member n (visited a) = a
           go a n _ =
             let g = get $ gScore a
-                trial_Score = g current + dist current n
+                trial_Score = g current + d n
             in if trial_Score >= g n
                then a 
                else SetData

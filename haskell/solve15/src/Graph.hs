@@ -1,4 +1,4 @@
-module Graph
+module Graphs
   ( findPath
   , Graph (..) )
 
@@ -71,7 +71,7 @@ findPath (Graph links) metric start goal = loop a0
           go a n _ =
             let g = get $ gScore a
                 trial_Score = g current + dist current n
-            in if trial_Score >= g n
+            in if trial_Score >= g n && False -- Set.member n (visited a)
                then a 
                else SetData
                     ( set (cameFrom a) n current )

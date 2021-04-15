@@ -3,12 +3,13 @@
 
 module Main where
 
+import Numeric
 import Data.Maybe
 import Data.Map.Strict (Map (..))
 import qualified Data.Map.Strict as Map
 import Control.Applicative
 import Control.Monad
-import Graph (Graph (..), findPath)
+import Graphs (Graph (..), findPath)
 import Align (levenshteinDistance)
 
 data Zip a = Zip ![a] ![a]
@@ -68,6 +69,11 @@ moveA b m = case m of
       pure $ shiftR $ Zip (Zip (y:xs) a : l) (Zip (x:ys) b : r)
     _ -> empty
 
+movesA
+  :: (Foldable t, Monad m, Alternative m) =>
+     Board a -> t Move -> m (Board a)
+movesA = foldM moveA
+
 gameGraph :: Ord a => Graph (Board a)
 gameGraph = Graph $ \b -> Map.fromList ((,1) <$> ([R,L,U,D] >>= moveA b))
 
@@ -91,10 +97,10 @@ prnt b = do
   mapM_ print $ toList $ toList <$> b
   putStr "\n"
 
-
 s1 = foldl (flip move) goal [L,L,U,L,U,R,R,L,D,R,U,L,U,L,L,D,D,R,D,D,R,U,U,R,L,D,R,U,U,R,L]
 
 main = do
-  print (length p)
-  mapM_ prnt p
-  where p = findPath gameGraph distL1 task goal
+  print (length p) 
+  -- mapM_ prnt p
+  where p = findPath gameGraph distL1 s1 goal
+
