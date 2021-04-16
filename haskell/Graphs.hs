@@ -1,7 +1,7 @@
 module Graphs where
 
-import Data.PriorityQueue.FingerTree (PQueue (..))
 import qualified Data.PriorityQueue.FingerTree as Queue
+-- import qualified PQueue as Queue
 import Data.Set (Set(..))
 import qualified Data.Set as Set
 import Data.Map (Map(..))
@@ -32,43 +32,50 @@ distL1 (x,y) (a,b) = max (abs $ x-a) (abs $ y-b)
 
 ------------------------------------------------------------
 
+{-# INLINE get #-}
 get :: (Ord k, Bounded a) => Map k a -> k -> a 
 get m x = Map.findWithDefault maxBound x m
 
+{-# INLINE set #-}
 set :: Ord k => Map k a -> k -> a -> Map k a
 set m k x = Map.insert k x m 
 
 data AstarData n = SetData { cameFrom :: Map n n
                            , gScore   :: Map n Int
-                           , openSet  :: PQueue Int n
-                           , visited  :: Set n
+                           , openSet  :: Queue.PQueue Int n
+--                           , visited  :: Set n
                            }
 
 findPath
   :: Ord n => Graph n -> (n -> n -> Int) -> n -> n -> [n]
-findPath (Graph links) metric start goal = loop a0
+findPath = findPath' (-1)
+
+findPath'
+  :: Ord n => Int -> Graph n -> (n -> n -> Int) -> n -> n -> [n]
+findPath' m (Graph links) metric start goal = loop m a0
   where
     a0 = SetData
-         { cameFrom = mempty
+         { cameFrom = mempty 
          , gScore   = Map.singleton start 0
          , openSet  = Queue.singleton (h start) start
-         , visited  = mempty
+--         , visited  = mempty
          }
     h = metric goal
     dist = get . links
-
-    loop a = case Queue.minView (openSet a) of
+    loop m a = case Queue.minView (openSet a) of
       Nothing -> []
       Just (current, q') -> if current == goal
-                            then getPath (cameFrom a)
-                            else loop a'
+                            then getPath (cameFrom a) goal
+                            else if m == 0
+                                 then getPath (cameFrom a) current
+                                 else loop (m-1) a'
         where
           a' = Map.foldlWithKey' go a { openSet = q'
-                                      , visited = Set.insert current (visited a)
+--                                      , visited = Set.insert current (visited a)
                                       } neighbours
           neighbours = links current
           d = dist current
-          go a n _ | Set.member n (visited a) = a
+          -- go a n _ | Set.member n (visited a) = a
           go a n _ =
             let g = get $ gScore a
                 trial_Score = g current + d n
@@ -78,10 +85,12 @@ findPath (Graph links) metric start goal = loop a0
                     ( set (cameFrom a) n current )
                     ( set (gScore a) n trial_Score )
                     ( Queue.insert (trial_Score + h n) n (openSet a) )
-                    ( visited a )
+--                    ( visited a )
 
-    getPath m = reverse $ goal : unfoldr go goal
+    getPath m end = reverse $ end : unfoldr go end
       where go n = (\x -> (x,x)) <$> Map.lookup n m
+
+
 
 ------------------------------------------------------------
 
