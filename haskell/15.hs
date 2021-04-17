@@ -12,7 +12,7 @@ import Data.Map.Strict (Map (..))
 import qualified Data.Map.Strict as Map
 import Control.Applicative
 import Control.Monad
-import Graphs (Graph (..), findPath, findPath')
+import Graphs (Graph (..), findPath)
 
 
 ------------------------------------------------------------
@@ -150,23 +150,27 @@ moveA' (Board' b) m = case m of
   L -> case b of
     ((i,0), n) -> empty
     ((i,j), n) -> let p = pos (i,j)
-                      d = n `div` Bits.shiftL p 4 `mod` 16
-                  in pure $ Board' ((i,j-1), n + d*(p - Bits.shiftL p 4))
+                      p' = Bits.shiftL p 4
+                      d = n `div` p' `mod` 16
+                  in pure $ Board' ((i,j-1), n + d*(p - p'))
   R -> case b of
     ((i,3), n) -> empty
     ((i,j), n) -> let p = pos (i,j)
-                      d = n `div` Bits.shiftR p 4 `mod` 16
-                  in pure $ Board' ((i,j+1), n + d*(p - Bits.shiftR p 4))
+                      p' = Bits.shiftR p 4
+                      d = n `div` p' `mod` 16
+                  in pure $ Board' ((i,j+1), n + d*(p - p'))
   U -> case b of
     ((0,j), n) -> empty
     ((i,j), n) -> let p = pos (i,j)
-                      d = n `div` Bits.shiftL p 16 `mod` 16
-                  in pure $ Board' ((i-1,j), n + d*(p - Bits.shiftL p 16))
+                      p' = Bits.shiftL p 16
+                      d = n `div` p' `mod` 16
+                  in pure $ Board' ((i-1,j), n + d*(p - p'))
   D -> case b of
     ((3,j), n) -> empty
     ((i,j), n) -> let p = pos (i,j)
-                      d = n `div` Bits.shiftR p 16 `mod` 16
-                  in pure $ Board' ((i+1,j), n + d*(p - Bits.shiftR p 16))
+                      p' = Bits.shiftR p 16
+                      d = n `div` p' `mod` 16
+                  in pure $ Board' ((i+1,j), n + d*(p - p'))
 
 {-# INLINE distL1' #-}
 distL1' :: Board' -> Board' -> Int
