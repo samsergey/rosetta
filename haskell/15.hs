@@ -7,7 +7,7 @@ import qualified Numeric as N
 import qualified Data.Bits as Bits
 import Data.Maybe
 import Data.Char (ord)
-import Data.List (elemIndex, unfoldr)
+import Data.List (elemIndex, unfoldr,transpose)
 import Data.Map.Strict (Map (..))
 import qualified Data.Map.Strict as Map
 import Control.Applicative
@@ -196,7 +196,22 @@ tsk n = moves' (take n solution) task'
 tsk' = moves' solution' goal'
 
 gameGraph' :: Graph Board'
-gameGraph' = Graph $ \b -> Map.fromList ((,3) <$> ([R,L,U,D] >>= moveA' b))
+gameGraph' = Graph $ \b -> Map.fromList ((,10) <$> ([R,L,U,D] >>= moveA' b))
+
+linearCollisions g b2 = sum (zipWith collisions (rows g) (rows b2))
+                        + sum (zipWith collisions (cols g) (cols b2))
+
+collisions g r = length $ filter collision r
+  where 
+    collision x = x `elem` g && elemIndex x g /= elemIndex x r
+
+cols b = transpose $ rows b
+
+rows :: Board' -> [String]g             
+rows = unfoldr f . show
+  where f lst = case splitAt 4 lst of
+                  ([],[]) -> Nothing
+                  (a,b) -> Just (a, b)
 
 ------------------------------------------------------------
 
@@ -205,4 +220,5 @@ main = do
   print (length p)
   -- mapM_ prnt p
   where
-    p = findPath gameGraph' distL1' (tsk 28) goal'
+    p = findPath gameGraph' h (tsk 25) goal'
+    h g x = distL1' g x + 6*linearCollisions g x
