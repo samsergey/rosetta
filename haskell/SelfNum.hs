@@ -1,4 +1,4 @@
-{-# language DeriveFoldable #-}
+-- {-# language DeriveFoldable #-}
 import Data.List
 import Control.Monad
 import Text.Printf
@@ -28,12 +28,13 @@ selfs' = filter isSelf [1..]
 selfs :: [Integer]
 selfs = sieve (sumFs [0..]) [0..]
   where
+--    sumFs' = zipWith (+) $ sum <$> replicateM  10 [0..9]
     sumFs = zipWith (+) [ a+b+c+d+e+f+g+h+i+j
                         | a <- [0..9] , b <- [0..9]
                         , c <- [0..9] , d <- [0..9]
                         , e <- [0..9] , f <- [0..9]
                         , g <- [0..9] , h <- [0..9]
-                        , i <- [0..9] , j <- [0..9] ]
+                        , i <- [0..9] , j <- [0..9] ] 
     sieve (f:fs) (n:ns)
       | n > f = sieve fs (n:ns)
       | n `notElem` take 81 (f:fs) = n : sieve (f:fs) ns
@@ -41,41 +42,36 @@ selfs = sieve (sumFs [0..]) [0..]
 
 ------------------------------------------------------------
 
-selfs'' :: [Integer]
-selfs'' = sieve (fromList f) fs [0..]
-  where
-    (f, fs) = splitAt 81 sumFs
-    sumFs = zipWith (+) [0..] [ a+b+c+d+e+f+g+h+i+j
-                              | a <- [0..9] , b <- [0..9]
-                              , c <- [0..9] , d <- [0..9]
-                              , e <- [0..9] , f <- [0..9]
-                              , g <- [0..9] , h <- [0..9]
-                              , i <- [0..9] , j <- [0..9] ]
-    sieve q (f:fs) (n:ns)
-      | n > top q = sieve (enq f (deq q)) fs (n:ns)
-      | n `notElem` q = n : sieve q (f:fs) ns
-      | otherwise = sieve q (f:fs) ns
+-- selfs'' :: [Integer]
+-- selfs'' = sieve (fromList f) fs [0..]
+--   where
+--     (f, fs) = splitAt 81 sumFs
+--     sumFs = zipWith (+) [0..] [ a+b+c+d+e+f+g+h+i+j
+--                               | a <- [0..9] , b <- [0..9]
+--                               , c <- [0..9] , d <- [0..9]
+--                               , e <- [0..9] , f <- [0..9]
+--                               , g <- [0..9] , h <- [0..9]
+--                               , i <- [0..9] , j <- [0..9] ]
+--     sieve q (f:fs) (n:ns)
+--       | n > top q = sieve (enq f (deq q)) fs (n:ns)
+--       | n `notElem` q = n : sieve q (f:fs) ns
+--       | otherwise = sieve q (f:fs) ns
 
-data Q a = Q ![a] ![a]
-  deriving (Show, Foldable)
+-- data Q a = Q ![a] ![a]
+--   deriving (Show, Foldable)
 
-top (Q [] l) = top $ Q (reverse l) []
-top (Q (x:_) _) = x
+-- top (Q [] l) = top $ Q (reverse l) []
+-- top (Q (x:_) _) = x
 
-enq x (Q l r) = Q l (x:r)
+-- enq x (Q l r) = Q l (x:r)
 
-deq (Q [] r) = deq $ Q (reverse r) []
-deq (Q (x:l) r) = Q l r
+-- deq (Q [] r) = deq $ Q (reverse r) []
+-- deq (Q (x:l) r) = Q l r
 
-fromList lst = Q (lst) []
+-- fromList lst = Q (lst) []
 
 
 main = do
   print $ take 50 selfs
-  forM_ [1..6] $ \i -> printf "1e%v\t%v\n" (i :: Int) (selfs !! (10^i-1))
-
-
-
-
-  
-
+  forM_ [1..7] $ \i ->
+    printf "1e%v\t%v\n" (i :: Int) (selfs !! (10^i-1))
