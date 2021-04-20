@@ -69,7 +69,6 @@ deq (Q (x:l) r) = Q l r
 
 fromList lst = Q (lst) []
 
-
 main = do
   print $ take 50 selfs
   forM_ [1..6] $ \i -> printf "1e%v\t%v\n" (i :: Int) (selfs !! (10^i-1))
