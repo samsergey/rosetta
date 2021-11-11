@@ -77,7 +77,7 @@ levenshteinAlignments s1 s2 = unzip <$> best
 ("ro-setta-code","raisethysword")
 ("ro-sett-acode","raisethysword")
 ("ro-set-tacode","raisethysword")
-("r-osettac-ode","raisethysword")
+("r-osettac-ode","raisethysword") 
 ("r-osetta-code","raisethysword")
 ("r-osett-acode","raisethysword")
 ("r-oset-tacode","raisethysword")
