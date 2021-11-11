@@ -21,8 +21,7 @@ tonelli n p =
     then let r = powMod p n ((p+1) `div` 4)
          in Just (r, p - r)
     else let z = (+ 2) . genericLength
-               $ takeWhile (\i -> p - 1 /= legendre i p)
-               $ [2..p-1]
+               $ takeWhile (\i -> p - 1 /= legendre i p) [2..p-1]
          in loop s
             ( powMod p z q )
             ( powMod p n $ (q+1) `div` 2 )
