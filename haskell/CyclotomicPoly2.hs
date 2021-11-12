@@ -134,3 +134,7 @@ main = do
   let cs = cyclotomic <$> [1..]
   let firstIndexOf c = fromJust . elemIndex c $ maximum . coefficients . abs <$> cs
   mapM_ (\i -> putStrLn $ show i ++ " appears in CM(" ++ show (1 + firstIndexOf i) ++ ")") [1..3]
+
+shortDiv p1 (1:p2) = go p1 $ negate <$> p2
+  where
+    go (p:p1) r = 
