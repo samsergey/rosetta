@@ -1,8 +1,7 @@
 import Data.List
 import Data.Ord
 import Data.Maybe
-import Data.Poly (VPoly, unPoly, quotRemFractional)
-import Data.Numbers.Primes
+import Data.Numbers.Primes (primeFactors, isPrime)
 
 data Poly a = Poly { coefficients :: ![a] }
   deriving (Eq, Ord)
@@ -58,16 +57,6 @@ instance (Real a, Fractional a, Enum a) => Integral (Poly a) where
   quotRem (Poly p1) (Poly p2) = (Poly q, Poly r)
     where (q, r) = polydiv p1 p2
 
-  -- quotRem p1 p2 | p2 == 1 = (p1, 0)
-  --               | otherwise = go 0 p1 
-  --   where
-  --     n = degree p2
-  --     go res p
-  --       | degree p < n = (res, p)
-  --       | otherwise =
-  --         let x =  monomial (degree p - n) $ leading p / leading p2
-  --         in go (x + res) $ p - p2 * x
-
 monomial n x = Poly $ x : replicate n 0
 
 ------------------------------------------------------------
@@ -82,16 +71,49 @@ norm = dropWhile (== 0)
 deg l = length (norm l) - 1
  
 zipWith' op p q = zipWith op (pad (-d) p) (pad d q)
-  where d = (length p) - (length q)
+  where d = length p - length q
  
 polydiv f g = aux (norm f) (norm g) []
   where aux f s q | ddif < 0 = (q, f)
                   | otherwise = aux f' s q'
-           where ddif = (deg f) - (deg s)
-                 k = (head f) / (head s)
+           where ddif = deg f - deg s
+                 k = head f / head s
                  ks = map (* k) $ shift ddif s
                  q' = zipWith' (+) q $ shift ddif [k]
                  f' = norm $ tail $ zipWith' (-) f ks
+
+polyadd :: Num a => [a] -> [a] -> [a]
+polyadd [] ys          = ys
+polyadd xs []          = xs
+polyadd (x:xs) (y:ys)  = (x+y) : polyadd xs ys
+
+polyAddScalar :: Num a => a -> [a] -> [a]
+polyAddScalar c [] = [c]
+polyAddScalar c (x:xs) = (c+x):xs
+
+polysub :: Num a => [a] -> [a] -> [a]
+polysub [] ys          = map negate ys
+polysub xs []          = xs
+polysub (x:xs) (y:ys)  = (x-y) : polysub xs ys
+
+-- | Scale a polynomial
+
+polyscale :: Num a => a -> [a] -> [a]
+polyscale a x = map (a*) x
+
+-- | Multiply two polynomials
+
+polymult :: Num a => [a] -> [a] -> [a]
+polymult ys =
+   foldr (\x acc -> polyadd (polyscale x ys) (0 : acc)) []
+
+polydiv'' :: Fractional a => [a] -> [a] -> [a]
+polydiv'' x0 y0 = reverse $ polydiv' (reverse x0) (reverse y0)
+    where polydiv' (x:xs) y
+             | length (x:xs) < length y = []
+             | otherwise = z : (polydiv' (tail (polysub (x:xs) (polymult [z] y))) y)
+                where z = x / head y
+          polydiv' [] _ = []
 
 ------------------------------------------------------------
 
@@ -102,13 +124,15 @@ subst (Poly p) x = foldl (\r c -> r * x + Poly [c]) (Poly []) p
 lift p 1 = p
 lift (Poly p) n = Poly $ intercalate (replicate (n-1) 0) (pure <$> p)
 
+isPrime' = isPrime . fromIntegral
+
 -- Cyclotomic polynomials
 cyclotomic' :: Int -> Poly Double
 cyclotomic' 0 = Poly []
 cyclotomic' 1 = Poly [1,-1]
 cyclotomic' n
-  | isPrime n = Poly $ replicate n 1
-  | even n && odd n' && isPrime n' = Poly $ take (n-1) $ cycle [1,-1]
+  | isPrime' n = Poly $ replicate n 1
+  | even n && odd n' && isPrime' n' = Poly $ take (n-1) $ cycle [1,-1]
   | otherwise = let ps = nub $ primeFactors n
                     cm = foldl (\c p -> lift c p `div` c) (Poly [1,-1]) ps
                 in lift cm $ n `div` product ps
@@ -119,8 +143,8 @@ cyclotomic :: Int -> Poly Double
 cyclotomic 0 = Poly []
 cyclotomic 1 = Poly [1,-1]
 cyclotomic n
-  | isPrime n = Poly $ replicate n 1
-  | even n && odd n' && isPrime n' = Poly $ take (n-1) $ cycle [1,-1]
+  | isPrime' n = Poly $ replicate n 1
+  | even n && odd n' && isPrime' n' = Poly $ take (n-1) $ cycle [1,-1]
   | otherwise = let (p, m):ps = primePowerFactors n
                     r = n `div` (p ^ m)
                     cm = cyclotomic r
@@ -139,9 +163,9 @@ divisors = map product . mapM (\(p, m)-> [p^i | i<-[0..m]]) . primePowerFactors
 properDivisors n = filter (< n) $ divisors n
 
 main = do
-  mapM_ (print . cyclotomic) [1..30]
+  mapM_ (print . cyclotomic') [1..30]
   putStrLn $ replicate 40 '-'
   let cs = cyclotomic' <$> [1..]
   let firstIndexOf c = fromJust . elemIndex c $ maximum . coefficients . abs <$> cs
-  mapM_ (\i -> putStrLn $ show i ++ " appears in CM(" ++ show (firstIndexOf i) ++ ")") [1..4]
+  mapM_ (\i -> putStrLn $ show i ++ " appears in CM(" ++ show (firstIndexOf i) ++ ")") [1..3]
 
