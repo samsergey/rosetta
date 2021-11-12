@@ -1,0 +1,16 @@
+<script>
+  function conv(a, xs)
+  {
+      var result = []
+      var tmp
+      for(var i = 0; i < xs.length; ++i) {
+	  tmp = 0
+	  for(var j = 0; j < a.length; ++j) {
+	      if (i-j < 0) continue
+	      tmp += a[j]*xs[i-j]
+	  }
+	  result.push(tmp)
+      }
+      return result
+  }
+</script>
