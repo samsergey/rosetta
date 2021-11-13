@@ -1,4 +1,4 @@
-import Control.Monad
+import Data.List
 
 normalized :: (Eq a, Num a) => [a] -> [a]
 normalized = dropWhile (== 0)
@@ -9,11 +9,16 @@ isZero = null . normalized
 shortDiv :: (Eq a, Fractional a) => [a] -> [a] -> ([a], [a])
 shortDiv p1 p2
   | isZero p2 = error "zero divisor"
-  | otherwise = foldM step p1 [1 .. length p1 - length as]
+  | otherwise =
+      let go 0 p = p 
+          go i (h:t) = (h/a) : go (i-1) (zipWith (+) (map ((h/a) *) ker) t)
+      in splitAt k $ go k p1
   where
+    k = length p1 - length as
     a:as = normalized p2
-    step (h:t) = return ([h/a], zipWith (+) (map ((h/a) *) ker) t)
     ker = negate <$> (as ++ repeat 0)
+
+    
 
 
 isMonic :: (Eq a, Num a) => [a] -> Bool
@@ -23,9 +28,15 @@ shortDivMonic :: (Eq a, Num a) => [a] -> [a] -> ([a], [a])
 shortDivMonic p1 p2
   | isZero p2 = error "zero divisor"
   | not (isMonic p2) = error "divisor is not monic"
-  | otherwise = foldM step p1 [1 .. length p1 - length as]
+  | otherwise =
+      let go 0 p = p 
+          go i (h:t) = h : go (i-1) (zipWith (+) (map (h *) ker) t)
+      in splitAt k $ go k p1
     where
-      a:as = normalized p2
-      step (h:t) = return ([h], zipWith (+) (map (h *) ker) t)
+      k = length p1 - length as
+      _:as = normalized p2
       ker = negate <$> as ++ repeat 0
+
+      
+
 
