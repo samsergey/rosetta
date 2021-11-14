@@ -1,6 +1,8 @@
 import System.IO (readFile)
-import Control.Monad (foldM)
+import Control.Monad
+import Control.Applicative
 import Data.List (intercalate)
+import Data.Maybe
 --import AStar (findPath, Graph(..))
 --import qualified Data.Map as M
 import qualified Data.Set as S
@@ -16,9 +18,9 @@ distance s1 s2 = length $ filter not $ zipWith (==) s1 s2
 --                                  | x <- short_dict
 --                                  , distance w x == 1 ]
 
-wordLadders :: String -> String -> [String] -> [[String]]
+wordLadders :: MonadPlus m => String -> String -> [String] -> m [String]
 wordLadders start end dict
-  | length start /= length end = []
+  | length start /= length end = mzero
   | otherwise = pure wordSpace >>= expandFrom start >>= shrinkFrom end
   where
  
@@ -27,24 +29,23 @@ wordLadders start end dict
     expandFrom s = go [[s]]
       where
         go (h:t) d
-          | S.null d || S.null f = []
-          | end `S.member` f = [h:t]
+          | S.null d || S.null f = mzero
+          | end `S.member` f = pure (h:t)
           | otherwise = go (S.elems f:h:t) (d S.\\ f)
           where
             f = foldr (\w -> S.union (S.filter (oneStepAway w) d)) mempty h
 
-    shrinkFrom = scanM (filter . oneStepAway)
+    shrinkFrom = scanM (findM . oneStepAway)
 
     oneStepAway x = (1 ==) . distance x
-    
+
     scanM f x = fmap snd . foldM g (x,[x])
       where g (b, r) a = (\x -> (x, x:r)) <$> f b a
 
-wordLadder :: String -> String -> [String] -> [String]
-wordLadder s e d = case wordLadders s e d of
-                     [] -> []
-                     h:_ -> h
+    findM p = msum . map (\x -> if p x then pure x else mzero)
 
+wordLadder :: String -> String -> [String] -> [String]
+wordLadder s e d = fromMaybe [] $ wordLadders s e d
 
 showChain [] = putStrLn "No chain"
 showChain ch = putStrLn $ intercalate " -> " ch
