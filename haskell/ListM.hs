@@ -249,11 +249,10 @@ partitionM :: (Monad m, MonadPlus p) => (a -> m Bool) -> [a] -> m (p a, [a])
 partitionM _ [] = return (mzero, [])
 partitionM p (x:xs) = do
   bool <- p x
-  if bool
-    then do
-      (ys, zs) <- partitionM p xs
-      return (x!ys, zs)
-    else return (mzero, x:xs)
+  (ys, zs) <- partitionM p xs
+  return $ if bool
+           then (x!ys, zs)
+           else (ys, x:zs)
 
 elemIndexM :: (Eq a, Integral i, Monad m, MonadPlus p) => a -> [a] -> m (p i)
 elemIndexM x = findIndexM $ eqM x
