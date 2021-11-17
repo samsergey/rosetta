@@ -30,18 +30,7 @@ ask a b = do
 
 --------------------------------------------------------------------------------
 
-countComparisons cmp a b = (Sum 1, a `cmp` b)
 
-median lst = sort lst !! (length lst `div` 2)
-
-mean lst = sum (fromIntegral <$> lst) / genericLength lst
-
-hist lst = (\x -> (head x, length x)) <$> group (sort lst)
-
-showHist (n, l) = putStrLn $ show n ++ "\t" ++ bar ++ " " ++ show perc ++ "%"
-  where
-    bar = replicate (max perc 1) '*'
-    perc = (100 * l) `div` product [1..7]
 
 
 
@@ -55,12 +44,23 @@ test method = do
   putStrLn $ "Median number of comparisons: " ++ show (median res)
   putStrLn $ "Mean number of comparisons: " ++ show (mean res)
   where
-    res = getSum . fst . method (countComparisons compare) <$> permutations [1..7]
-
+    res = getSum . fst . method cmp <$> permutations [1..7]
+    cmp a b = (Sum 1, compare a b)
+    median lst = sort lst !! (length lst `div` 2)
+    mean lst = sum (fromIntegral <$> lst) / genericLength lst
+    hist lst = (\x -> (head x, length x)) <$> group (sort lst)
+    showHist (n, l) = putStrLn line
+      where
+        line = show n ++ "\t" ++ bar ++ " " ++ show perc ++ "%"
+        bar = replicate (max perc 1) '*'
+        perc = (100 * l) `div` product [1..7]
 
 main = mapM_ test [tsortM, isortM, msortM]
 
 --------------------------------------------------------------------------------
+countComparisons cmp a b = (Sum 1, a `cmp` b)
+
+hist lst = (\x -> (head x, length x)) <$> group (sort lst)
 
 test2 method = hist $ concat res
   where
@@ -69,5 +69,9 @@ test2 method = hist $ concat res
 test3 = getSum . fst . run <$> [tsortM, isortM, msortM]
   where
     run m = m (countComparisons (fromList sorted)) colors
-   
+
+test4 k m = filter (\s -> fst s == k) run
+  where
+    run = (\p -> (fst (m (countComparisons (fromList sorted)) p), p)) <$> ps
+    ps = permutations colors
 
