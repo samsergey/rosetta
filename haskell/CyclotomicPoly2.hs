@@ -1,3 +1,5 @@
+{-# language LambdaCase #-}
+
 import Data.List
 import Data.Numbers.Primes (primeFactors)
 
@@ -38,22 +40,27 @@ cyclotomic n = case primePowerFactors n of
   (p, m):ps     -> let cm = cyclotomics !! (n `div` (p ^ m))
                    in lift (lift cm p `shortDiv` cm) (p^(m-1))
 
-showPoly p = foldl showMono "" $ zip (reverse p) [0..]
+showPoly [] = "0"
+showPoly p = foldl1 (\r -> (r ++) . term) $
+             dropWhile null $
+             foldMap (\(c, n) -> [show c ++ expt n]) $
+             zip (reverse p) [0..]
   where
-    showMono r (c, i) = r ++ case (c, i) of
-      (0, _) -> ""
-      (c, 0) -> show c
-      (c, 1) -> " + " ++ "x"
-      (1, i) -> " + " ++ "x^" ++ show i
-      (-1, i) -> " - " ++ "x^" ++ show i
-      (c, i) | c < 0 -> " - " ++ show (-c) ++ "*x^" ++ show i
-      (c, i) | c > 0 -> " + " ++ show c ++ "*x^" ++ show i 
+    expt = \case 0 -> ""
+                 1 -> "*x"
+                 n -> "*x^" ++ show n
 
+    term = \case [] -> ""
+                 '0':'*':t -> ""
+                 '-':'1':'*':t -> " - " ++ t
+                 '1':'*':t -> " + " ++ t
+                 '-':t -> " - " ++ t
+                 t -> " + " ++ t                   
 main = do
   mapM_ (print . showPoly . cyclotomic) [1..30]
   putStrLn $ replicate 40 '-'
   
-  mapM_ showLine $ take 9 task2
+  mapM_ showLine $ take 4 task2
   where
     showLine (j, i, l) = putStrLn $ concat [ show j
                                             , " appears in CM(", show i
