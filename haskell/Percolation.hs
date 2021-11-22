@@ -1,42 +1,41 @@
 {-# language FlexibleContexts #-}
-import Data.List
-import System.Random
-import Control.Monad.State
-import Text.Printf
-import qualified Data.Set as S
+import Data.List           (unfoldr, genericLength, elemIndices)
+import System.Random       (StdGen, mkStdGen, randoms)
+import Control.Monad.State (state, runState)
+import Text.Printf         (printf)
+import qualified Data.Set  as S
 
-clipBy :: Int -> [a] -> [[a]]
-clipBy n = unfoldr (Just . splitAt n)
-
-matrixToCells m = S.fromList $
-  [ (i,j) | (i,r) <- zip [0..] m
-          , (j,x) <- zip [0..] r, x]
-
-neigbours (i,j) = (`S.member` S.fromList [(i-1,j), (i,j-1), (i+1,j), (i,j+1)])
-
-clusters = unfoldr findCuster . matrixToCells
+clusters :: [[Bool]] -> [S.Set Int]
+clusters m = unfoldr findCuster $ matrixToCells m
   where
+    matrixToCells = S.fromList . elemIndices True . mconcat
+    
     findCuster s = do
       (p, ps) <- S.minView s
-      pure (runState (go p) ps)
+      pure (runState (expand p) ps)
       
-    go p = do
-      (ns, ps') <- gets $ S.partition (neigbours p)
-      put ps'
-      xs <- mapM go (S.elems ns)
-      return $ S.insert p (mconcat xs)
+    expand p = do
+      ns <- state $ S.partition $ neigbours p
+      xs <- mapM expand $ S.elems ns
+      return $ S.insert p $ mconcat xs
+
+    neigbours c = (`S.member` S.fromList [c-1, c+1, c-n, c+n])
+    n = length m
 
 randomMatrices :: Int -> StdGen -> [[[Bool]]]
 randomMatrices n = clipBy n . clipBy n . randoms
+  where
+    clipBy n = unfoldr (Just . splitAt n)
 
 tests :: Int -> StdGen -> [Int]
-tests n g = length . clusters <$> randomMatrices n g
+tests n = map (length . clusters) . randomMatrices n
 
-experiment :: Int -> StdGen -> Double
-experiment n g = (mean $ take 10 $ tests n g) / fromIntegral n**2
+task :: Int -> StdGen -> Double
+task n = mean . take 10 . map density . tests n 
   where
-    mean lst = fromIntegral (sum lst) / fromIntegral (length lst)
+    density c = fromIntegral c / fromIntegral n**2
+    mean lst = sum lst / genericLength lst
     
-main = newStdGen >>= mapM_ (printf "%f\n") . res
+main = pure (mkStdGen 137) >>= mapM_ (printf "%f\n") . res
   where
-    res = mapM experiment [10,100,200]
+    res = mapM task [4,16,64]
