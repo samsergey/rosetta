@@ -3,6 +3,7 @@ import Data.List           (unfoldr, genericLength, elemIndices)
 import System.Random       (StdGen, mkStdGen, randoms)
 import Control.Monad.State (state, runState)
 import Text.Printf         (printf)
+import Data.Set            ((\\))
 import qualified Data.Set  as S
 
 clusters :: [[Bool]] -> [S.Set Int]
@@ -15,11 +16,12 @@ clusters m = unfoldr findCuster $ matrixToCells m
       pure (runState (expand p) ps)
       
     expand p = do
-      ns <- state $ S.partition $ neigbours p
+      ns <- state $ extract (neigbours p)
       xs <- mapM expand $ S.elems ns
       return $ S.insert p $ mconcat xs
 
-    neigbours c = (`S.member` S.fromList [c-1, c+1, c-n, c+n])
+    extract s1 s2 = (s2 `S.intersection` s1, s2 \\ s1)
+    neigbours c = S.fromList [c-1, c+1, c-n, c+n]
     n = length m
 
 randomMatrices :: Int -> StdGen -> [[[Bool]]]
@@ -38,4 +40,4 @@ task n = mean . take 10 . map density . tests n
     
 main = pure (mkStdGen 137) >>= mapM_ (printf "%f\n") . res
   where
-    res = mapM task [4,16,64]
+    res = mapM task [4,16,64,128,512]
