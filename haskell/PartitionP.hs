@@ -23,12 +23,11 @@ ofsets = scanl (+) 0 [if even n then n `div` 2 else n | n <- [1..]]
 
 
 
-
 partitions :: [Integer]
-partitions = 1 : 1 : 2 : rest
-  where
-    rest = (scanl (\r (o, t) -> scanl (+) 0 (zipWith o r t)) (repeat 0) (zip signs terms))
-    terms = [ drop n partitions | n <- ofsets ]
-    signs = cycle [(+),(+),(-),(-)]
+partitions = 1 : 1 : rest
+ where
+   rest = [] -- (scanl (\r (o, t) -> scanl (+) 0 (zipWith o r t)) (repeat 0) (zip signs terms))
+   terms = map (`drop` partitions) ofsets
+   signs = cycle [1,1,-1,-1]
 
 main = print $ partitionsP'' 6666
