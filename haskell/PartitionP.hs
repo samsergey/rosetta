@@ -1,43 +1,37 @@
-partDiffDiff n = if odd n then (n + 1) `div` 2 else n + 1
+{-# language DeriveFunctor #-}
 
-partDiff n = if n < 2 then 1 else partDiff (n - 1) + partDiffDiff (n-1)
+------------------------------------------------------------
+-- memoization utilities
 
-partitionsP n
+data Memo a = Node a (Memo a) (Memo a)
+  deriving Functor
+
+memo :: Integral a => Memo p -> a -> p
+memo (Node a l r) n
+  | n == 0 = a
+  | odd n = memo l (n `div` 2)
+  | otherwise = memo r (n `div` 2 - 1)
+
+nats :: Memo Int
+nats = Node 0 ((+1).(*2) <$> nats) ((*2).(+1) <$> nats)
+
+------------------------------------------------------------
+-- calculating partitions
+
+partitions :: Memo Integer
+partitions = partitionP <$> nats
+
+partitionP :: Int -> Integer
+partitionP n
   | n < 2 = 1
-  | otherwise = sum [ partitionsP (n - pd) * if ((i-1) `mod` 4) < 2 then 1 else (-1)
-                    | i <- [1..n]
-                    , let pd = partDiff i, pd  <= n ]
-
-
-data Tree a = Node a (Tree a) (Tree a)
-
-Node a tl tr !!! 0 = a 
-Node a tl tr !!! n =
-   if odd n
-     then tl !!! top
-     else tr !!! (top-1)
-        where top = n `div` 2
-
-instance Functor Tree where
-   fmap f (Node a tl tr) = Node (f a) (fmap f tl) (fmap f tr)
-
---naturals = Node 0  (fmap ((+1).(*2)) naturals) (fmap ((*2).(+1)) naturals)
-
--- naturals r n =
---    Node n
---      ((naturals $! r2) $! (n+r))
---      ((naturals $! r2) $! (n+r2))
---         where r2 = 2*r
-
-partitionsP' = partitionsP'' <$> naturals
-partitionsP'' n
-  | n < 2 = 1
-  | otherwise = sum $ zipWith (*) signs ((partitionsP' !!!) <$> terms)
+  | otherwise = sum $ zipWith (*) signs terms
   where
-    terms = (n -) <$> takeWhile (<= n) (tail ofsets)
+    terms = [ memo partitions (n - i)
+            | i <- takeWhile (<= n) ofsets ]
     signs = cycle [1,1,-1,-1]
 
-ofsets = scanl (+) 0 [if even n then n `div` 2 else n | n <- [1..]]
+ofsets = scanl1 (+) $ mix [1,3..] [1,2..]
+  where
+    mix a b = concat $ zipWith (\x y -> [x,y]) a b 
 
-
-main = print $ partitionsP'' 6666
+main = print $ partitionP 6666
