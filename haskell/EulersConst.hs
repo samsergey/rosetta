@@ -1,11 +1,26 @@
-divergensy :: Double -> [Double] -> (Int, Double)
-divergensy eps lst = (length series, snd (last series))
+limit :: Double -> [Double] -> Maybe (Int, Double)
+limit eps lst = case span ((> eps) . dist) pairs  of
+                (_,[]) -> Nothing
+                (s, _) -> Just (length s, snd (last s)) 
   where
     dist (x1,x2) = abs (x1 - x2)
-    series = takeWhile ((> eps) . dist) $ zip lst (tail lst)
+    pairs = take 10000 $ zip lst (tail lst)
 
-harmonics = scanl (+) 0 $ recip <$> [1..]
+sums = scanl (+) 0
+products = scanl (*) 1
+a *. lst = map (* a) lst
+(.*.) = zipWith (*)
+(.-.) = zipWith (-)
 
+harmonics = recip <$> [1..]
 
-directEstimation = zipWith (-) harmonics (log <$> [1..])
+harmonicNumbers = sums harmonics
 
+directEstimation = limit 1e-8 $ harmonicNumbers .-. (log <$> [1..])
+
+sweeneyEstimation :: [Double]
+sweeneyEstimation = ss
+  where
+    n = 21
+    ss = sums $ rs .*. harmonics
+    rs = products $ n *. harmonics
