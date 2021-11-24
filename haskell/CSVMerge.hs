@@ -1,7 +1,8 @@
 import Data.List
-import Data.Maybe (mapMaybe, maybeToList)
+import Data.Maybe
 import System.IO (readFile)
 import Text.Read (readMaybe)
+import Data.Monoid
 import Control.Applicative ((<|>))
 
 ------------------------------------------------------------
@@ -30,6 +31,8 @@ normalize = DB
   
 ------------------------------------------------------------
 
+--newtype Pat = Pat ( Alt (Maybe String) , Alt (Maybe String) , [String] , [Float] )
+
 data Patient = Patient { pid :: String
                        , name :: Maybe String
                        , visits :: [String]
@@ -37,12 +40,12 @@ data Patient = Patient { pid :: String
   deriving Show
 
 instance Semigroup Patient where
-  p1 <> p2 = Patient
-    (if null (pid p1) then pid p2 else pid p1)
-    (name p1 <|> name p2)
-    (visits p1 <|> visits p2)
-    (scores p2 <|> scores p1)
-
+  Patient p1 n1 v1 s1 <> Patient p2 n2 v2 s2 =
+    Patient (fromJust $ Just p1 <|> Just p2)
+            (n1 <|> n2)
+            (v1 <|> v2)
+            (s1 <|> s2)
+    
 instance Monoid Patient where
   mempty = Patient mempty mempty mempty mempty
 
@@ -84,7 +87,7 @@ main = do
     header = [ "PATIENT_ID", "LASTNAME", "VISIT_DATE"
              , "SCORES SUM","SCORES AVG"]
     fields = [ pid
-             , \p -> case name p of {Nothing -> []; Just n -> n}
+             , fromMaybe [] . name
              , \p -> case visits p of {[] -> []; l -> last l}
              , \p -> case scores p of {[] -> []; s -> show (sum s)}
              , \p -> case scores p of {[] -> []; s -> show (mean s)} ]
