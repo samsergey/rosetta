@@ -60,6 +60,7 @@ phiM = memoize2 phi
 legendrePi :: Integer -> Integer
 legendrePi n
   | n < 2 = 0
-  | otherwise = memo2 phiM n a + a - 1 where a = legendrePi (isqrt n)
+  | otherwise = memo2 phiM n a + a - 1
+    where a = legendrePi (floor (sqrt (fromInteger n)))
 
-main = mapM_ (\n -> putStrLn $ show n ++ "\t" ++ show (legendrePi (10^n))) [1..4]
+main = mapM_ (\n -> putStrLn $ show n ++ "\t" ++ show (legendrePi (10^n))) [1..7]
