@@ -1,3 +1,4 @@
+{-# language BangPatterns #-}
 import Data.List (unfoldr)
 import Data.Ratio
 import Data.Tree (Tree (..), levels, unfoldTree)
@@ -9,7 +10,7 @@ import Control.Monad.Zip (mzip)
 mkTree :: (a -> a -> a) -> a -> a -> Tree a
 mkTree f a b = unfoldTree go (a, b)
   where
-    go (a,b) = let m = f a b in (m, [(a,m), (m,b)])
+    go (!a, !b) = let m = f a b in (m, [(a,m), (m,b)])
 
 pathBy :: Ord b => (a -> b) -> Tree a -> b -> [Either a a]
 pathBy f (Node a [l,r]) x =
@@ -20,14 +21,16 @@ pathBy f (Node a [l,r]) x =
 
 lookupTree :: Ord a => Tree (a, c) -> a -> c
 lookupTree t =
-  snd . either id id . last . pathBy fst t
+  snd . either id id . last . take 43 . pathBy fst t
 
 oddFunc f 0 = 0
 oddFunc f x = signum x * f (abs x)
+
 --------------------------------------------------------------------------------
+
 toRatio (a, b) = a % b
 mediant (a,b) (c,d) = (a + c, b + d)
-mean (a,b) (c,d) = (a*d + c*b, 2*b*d)
+mean (!a,!b) (!c,!d) = (a*d + c*b, 2*b*d)
 
 farey = toRatio <$> mkTree mediant (0, 1) (1, 1)
 
@@ -39,12 +42,12 @@ diadic = toRatio <$> mkTree mean (0, 1) (1, 1)
 
 fromFraction (i, f) = fromIntegral i + f
 
-minkowskiQR :: Ratio Integer -> Ratio Integer
+minkowskiQR :: Rational -> Rational
 minkowskiQR = fromFraction . fmap transform . properFraction
   where
     transform = oddFunc $ lookupTree (mzip farey diadic)
 
-invMinkowskiQR :: Ratio Integer -> Ratio Integer
+invMinkowskiQR :: Rational -> Rational
 invMinkowskiQR = fromFraction . fmap transform . properFraction
   where
     transform = oddFunc $ lookupTree (mzip diadic farey)
@@ -66,10 +69,8 @@ id
 --------------------------------------------------------------------------------
 -- ?(x) and inverse implemented via diadic numerals
 
-limit lst
-
 fromDiadic :: (Int, [Int]) -> Double
-fromDiadic = fromFraction . fmap (limit . foldr go 0)
+fromDiadic = fromFraction . fmap (foldr go 0)
   where
     go x r = (fromIntegral x + r)/2
 
@@ -171,7 +172,7 @@ rationals = concat (levels sternBrocot)
 testEq f g  = all (\x -> f x == g x)
 testEqF f g = all (\x -> abs (f x - g x) < 1e-11)
 
-testIds :: [[Ratio Integer] -> Bool]
+testIds :: [[Rational] -> Bool]
 testIds = 
   [ testEq  (invMinkowskiQR . minkowskiQR) id
   , testEq  (minkowskiQR . invMinkowskiQR) id . fmap minkowskiQR
@@ -214,16 +215,18 @@ testIds =
 --     return y + d; /* final round-off */
 -- }
 
+a ==> b = lookupTree (mzip a b)
 
+mirror t = Node 0 [reflect $ negate <$> t, t]
 
-minkowskiQC :: Double -> Double
-minkowskiQC x = fromIntegral i + go 0 1 1 1 (1/2) 0
-  where
-    (i, f) = properFraction x
-    go p q r s d y
-      | y == y + d = y + d
-      | f < fromIntegral m / fromIntegral n = go p q m n (d/2) y
-      | otherwise = go m n r s (d/2) (y + d)    
-      where
-        m = p + r
-        n = q + s
+reflect (Node a [l,r]) = Node a [reflect r, reflect l]
+
+fromRatio n = (numerator n, denominator n)
+
+mean' a b = toRatio $ fromRatio a `mean` fromRatio b
+mediant' a b = toRatio $ fromRatio a `mediant` fromRatio b
+
+--mean' a b = (a + b) / 2
+
+--sternBrocot = mkTree mediant (0, 1) (1, 0)
+diadic' = mkTree mean (0, 1) (1, 0)
