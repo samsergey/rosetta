@@ -29,8 +29,9 @@ oddFunc f x = signum x * f (abs x)
 --------------------------------------------------------------------------------
 
 toRatio (a, b) = a % b
-mediant (a,b) (c,d) = (a + c, b + d)
+mediant (!a,!b) (!c,!d) = (a + c, b + d)
 mean (!a,!b) (!c,!d) = (a*d + c*b, 2*b*d)
+hmean (!a,!b) (!c,!d) = (2*a*c, b*c + a*d)
 
 farey = toRatio <$> mkTree mediant (0, 1) (1, 1)
 
@@ -38,6 +39,7 @@ sternBrocot = toRatio <$> mkTree mediant (0, 1) (1, 0)
 
 diadic = toRatio <$> mkTree mean (0, 1) (1, 1)
 
+htree = mkTree hmean (1, 1) (1, 0)
 --------------------------------------------------------------------------------
 
 fromFraction (i, f) = fromIntegral i + f
@@ -225,6 +227,7 @@ fromRatio n = (numerator n, denominator n)
 
 mean' a b = toRatio $ fromRatio a `mean` fromRatio b
 mediant' a b = toRatio $ fromRatio a `mediant` fromRatio b
+hmean' a b = toRatio $ fromRatio a `hmean` fromRatio b
 
 --mean' a b = (a + b) / 2
 
