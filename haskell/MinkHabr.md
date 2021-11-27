@@ -58,3 +58,9 @@
 ?(p/q + n/1) = ?(p/q) `mean` ?(n/1) = (r/(2^k) + n)/2 = r/(2^(k+1) + n/2
 
 
+(a, b) \to \mathrm{Tree}\ (a, m)\ m\ (m, b),\quad \text{where}\ m = a \oplus b
+
+λ> mapM_ print $ take 4 $ levels minkowski
+[*** Exception: Ratio has zero denominator
+
+\begin{array}{l}?(0)=0\\,?(x+1)=?(x)+1,\\?\left(\frac{p+r}{q+s}\right) = \frac{?\left(\frac{p}{q}\right) + ?\left(\frac{r}{s}\right)}{2}.\end{array}

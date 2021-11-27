@@ -7,10 +7,9 @@ import Control.Monad.Zip (mzip)
 ------------------------------------------------------------
 -- tree utilities
 
-mkTree :: (a -> a -> a) -> a -> a -> Tree a
-mkTree f a b = unfoldTree go (a, b)
-  where
-    go (!a, !b) = let m = f a b in (m, [(a,m), (m,b)])
+mkTree :: (a -> a -> a) -> (a, a) -> Tree a
+mkTree f =
+  unfoldTree $ \(!a, !b) -> let m = f a b in (m, [(a,m), (m,b)])
 
 pathBy :: Ord b => (a -> b) -> Tree a -> b -> [Either a a]
 pathBy f (Node a [l,r]) x =
@@ -21,7 +20,7 @@ pathBy f (Node a [l,r]) x =
 
 lookupTree :: Ord a => Tree (a, c) -> a -> c
 lookupTree t =
-  snd . either id id . last . take 43 . pathBy fst t
+  snd . either id id . last . pathBy fst t
 
 oddFunc f 0 = 0
 oddFunc f x = signum x * f (abs x)
@@ -33,13 +32,10 @@ mediant (!a,!b) (!c,!d) = (a + c, b + d)
 mean (!a,!b) (!c,!d) = (a*d + c*b, 2*b*d)
 hmean (!a,!b) (!c,!d) = (2*a*c, b*c + a*d)
 
-farey = toRatio <$> mkTree mediant (0, 1) (1, 1)
+farey = toRatio <$> mkTree mediant ((0, 1), (1, 1))
 
-sternBrocot = toRatio <$> mkTree mediant (0, 1) (1, 0)
+diadic = toRatio <$> mkTree mean ((0, 1), (1, 1))
 
-diadic = toRatio <$> mkTree mean (0, 1) (1, 1)
-
-htree = mkTree hmean (1, 1) (1, 0)
 --------------------------------------------------------------------------------
 
 fromFraction (i, f) = fromIntegral i + f
@@ -231,5 +227,9 @@ hmean' a b = toRatio $ fromRatio a `hmean` fromRatio b
 
 --mean' a b = (a + b) / 2
 
---sternBrocot = mkTree mediant (0, 1) (1, 0)
-diadic' = mkTree mean (0, 1) (1, 0)
+sternBrocot = toRatio <$> mkTree mediant ((0,1), (1,0))
+
+diadic' = mirror $ toRatio <$> mkTree mean ((0,1), (1,0))
+  where
+    mean (a,b) (1,0) = (a+1,b)
+    mean (a,b) (c,d) = (a*d + c*b, 2*b*d)
