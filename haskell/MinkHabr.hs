@@ -1,5 +1,6 @@
 import Data.Tree
 import Data.Ratio
+import Data.List
 
 intervalTree :: (a -> a -> a) -> (a, a) -> Tree a
 intervalTree node = unfoldTree $
@@ -54,13 +55,13 @@ questionMarkF = sternBrocotF ==> minkowskiF
 invQuestionMarkF = minkowskiF ==> sternBrocotF
 
 
-
-terminateOn eps = go
+truncateOn :: (Ord a, Num a) => a -> Tree a -> Tree a
+truncateOn eps (Node a [l,r])
+  | small (rootLabel l, rootLabel r) = Node a []
+  | otherwise = Node a $ truncateOn eps <$> [l,r]
   where
-    go (Node a [l,r])
-      | small (rootLabel l) (rootLabel r) = Node a []
-      | otherwise = Node a [go l, go r]
-    small a b = abs (a - b) < abs (a + b) * eps
+    small (a, b) = abs (a - b) < eps ||
+                   abs (a - b) < abs (a + b) * eps
 
 
 
@@ -91,11 +92,37 @@ track (Node a [l, r]) x =
     EQ -> [1]
     GT -> 1 : track r x
 
+follow :: Tree a -> [Int] -> a
 follow t = rootLabel . foldl (\t x -> subForest t !! x) t
 
-fromDiadic :: [Int] -> Double
-fromDiadic s = foldr (\x r -> fromIntegral x + r/2) 0 s
+toDiadic = tail . track minkowskiF
+fromDiadic = follow minkowskiF . (1:)
+
+listToInt lst = zip ((1+) <$> lst) (cycle [0,1]) >>= uncurry replicate 
+
+fromBinary lst = foldl (\r x -> r*2 + x) 0 lst
+
+toBinary = reverse . unfoldr go
+  where go 0 = Nothing
+        go n = let  (q,r) = n `divMod` 2 in Just (r,q)
+
+toInt = fromBinary . track sternBrocot
+
+nats :: Tree Integer
+nats = Node 0 [(+1).(*2) <$> nats, (*2).(+1) <$> nats]
+
+trackNat :: Integer -> [Int]
+trackNat = go nats
+  where
+    go (Node _ [l, r]) n
+      | n == 0 = []
+      | odd n = 0 : go l (n `div` 2)
+      | otherwise = 1 : go r (n `div` 2 - 1)
+
+ratToNat :: Rational -> Integer
+ratToNat = sternBrocot ==> nats
+
+natToRat :: Integer -> Rational
+natToRat = follow sternBrocot . trackNat
 
 
-
--- https://cp4space.hatsya.com/2012/09/04/closed-form-bijections/
