@@ -126,3 +126,7 @@ natToRat :: Integer -> Rational
 natToRat = follow sternBrocot . trackNat
 
 
+newtype B = B [Int] deriving (Eq, Show)
+
+instance Ord B where
+  compare (B a) (B b) = compare (length b) (length a) <> compare (head a) (head b)
