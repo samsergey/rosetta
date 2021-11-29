@@ -53,8 +53,12 @@ minkowskiF = mirror $ intervalTree mean (0, 1/0)
              | otherwise = (a + b) / 2
 
 questionMarkF, invQuestionMarkF :: Double -> Double
-questionMarkF = sternBrocotF ==> minkowskiF
-invQuestionMarkF = minkowskiF ==> sternBrocotF
+--questionMarkF = sternBrocotF ==> minkowskiF
+--invQuestionMarkF = minkowskiF ==> sternBrocotF
+
+
+questionMarkF = follow minkowskiF . init . track sternBrocotF
+invQuestionMarkF = follow sternBrocotF . init . track minkowskiF
 
 
 truncateOn :: (Ord a, Num a) => a -> Tree a -> Tree a
