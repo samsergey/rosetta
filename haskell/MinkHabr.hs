@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingVia #-}
+
 import Data.Tree
 import Data.Ratio
 import Data.List
@@ -63,7 +65,22 @@ truncateOn eps (Node a [l,r])
     small (a, b) = abs (a - b) < eps ||
                    abs (a - b) < abs (a + b) * eps
 
+------------------------------------------------------------
 
+newtype N = N Integer
+  deriving (Eq, Num, Show) via Integer
+
+nats :: Tree N
+nats = unfoldTree (\b -> (N b, [2*b, 2*b+1])) 1
+
+instance Ord N where
+  compare (N x) (N n)
+    | x == n    = EQ
+    | x < m     = LT
+    | otherwise = GT
+    where
+      m = 2^(level x - level n - 1) * (2*n + 1)
+      level = floor . logBase 2 . fromIntegral
 
 ------------------------------------------------------------
 {-
@@ -108,8 +125,8 @@ toBinary = reverse . unfoldr go
 
 toInt = fromBinary . track sternBrocot
 
-nats :: Tree Integer
-nats = Node 0 [(+1).(*2) <$> nats, (*2).(+1) <$> nats]
+nats' :: Tree Integer
+nats' = Node 0 [(+1).(*2) <$> nats', (*2).(+1) <$> nats']
 
 trackNat :: Integer -> [Int]
 trackNat = go nats
@@ -119,14 +136,11 @@ trackNat = go nats
       | odd n = 0 : go l (n `div` 2)
       | otherwise = 1 : go r (n `div` 2 - 1)
 
-ratToNat :: Rational -> Integer
-ratToNat = sternBrocot ==> nats
 
-natToRat :: Integer -> Rational
-natToRat = follow sternBrocot . trackNat
+showTree 0 _ = mempty
+showTree n (Node a f) = "Tree["++show a++",{"++ intercalate "," (showTree (n-1) <$> f) ++"}]"
 
+graphTree 0 _ = []
+graphTree n (Node a f) = (((show a <> " -> ") <>) . show.rootLabel <$> f) <> foldMap (graphTree (n-1)) f
 
-newtype B = B [Int] deriving (Eq, Show)
-
-instance Ord B where
-  compare (B a) (B b) = compare (length b) (length a) <> compare (head a) (head b)
+toGraph n t = "Graph[{" ++ intercalate "," (graphTree n t) ++ "}]"
