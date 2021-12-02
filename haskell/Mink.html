@@ -1,0 +1,18 @@
+<script>
+
+  function* unfoldTree(step, start) {
+      var b = start
+      while(true) {
+	  [a, b] = step(b)
+	  yield a
+      }
+  }
+  
+  function* intervalTree(f, [a,b]) {
+      while (true) {
+	  yield unfoldTree(([a,b]) => { m = mediant(a,b);
+					return [m,[[a,m],[m,b]]]})
+      }
+  }
+      
+</script>

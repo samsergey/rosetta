@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
-
+import Graphics.Svg
+import qualified Data.Text as T
 import Data.Tree
 import Data.Ratio
 import Data.List
@@ -148,3 +149,19 @@ graphTree 0 _ = []
 graphTree n (Node a f) = (((show a <> " -> ") <>) . show.rootLabel <$> f) <> foldMap (graphTree (n-1)) f
 
 toGraph n t = "Graph[{" ++ intercalate "," (graphTree n t) ++ "}]"
+
+------------------------------------------------------------
+
+toSVG pts = svg (polyline_ [ Stroke_ <<- T.pack  "black"
+                           , Points_ <<- polyline pts ])
+  where
+    polyline = foldMap (\(x,y) -> T.pack (show x ++ "," ++ show y ++ " "))
+    svg content =
+      doctype
+      <> with (svg11_ content) [ Version_ <<- T.pack  "1.1"
+                               , Width_ <<- T.pack "300"
+                               , Height_ <<- T.pack "200" ]
+
+main = writeFile "test.svg" $
+       show . toSVG $
+       zip (levels sternBrocotF !! 4) (levels minkowskiF !! 4)
