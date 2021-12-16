@@ -33,9 +33,11 @@ memo (Node a l r) n
 nats :: Memo Int
 nats = Node 0 ((+1).(*2) <$> nats) ((*2).(+1) <$> nats)
 
+memoize f = memo (f <$> nats)
+
 ------------------------------------------------------------
 -- simple memoization
-cyclotomics = cyclotomic <$> nats
+cyclotomics = memoize cyclotomic
 
 cyclotomic :: Int -> [Integer]
 cyclotomic 0 = [0]
@@ -47,13 +49,13 @@ cyclotomic n = case primePowerFactors n of
   -- for prime n
   [(p,1)]       -> replicate n 1
   -- for power of prime n
-  [(p,m)]       -> lift (memo cyclotomics p) (p^(m-1))
+  [(p,m)]       -> lift (cyclotomics p) (p^(m-1))
   -- for n = 2*p and prime p
   [(2,1),(p,1)] -> take (n `div` 2) $ cycle [1,-1]
   -- for n = 2*m and odd m
-  (2,1):_       -> negateVar $ memo cyclotomics (n `div` 2)
+  (2,1):_       -> negateVar $ cyclotomics (n `div` 2)
   -- general case
-  (p, m):ps     -> let cm = memo cyclotomics (n `div` (p ^ m))
+  (p, m):ps     -> let cm = cyclotomics (n `div` (p ^ m))
                    in lift (lift cm p `shortDiv` cm) (p^(m-1))
 
 showPoly [] = "0"
