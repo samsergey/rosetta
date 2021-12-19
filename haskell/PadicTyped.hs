@@ -2,8 +2,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE TypeOperators #-}
--- {-# LANGUAGE NoStarIsType #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DerivingVia #-}
@@ -31,21 +31,18 @@ type family NonZeroNat (m :: Nat) :: Constraint where
 type family ValidBase (m :: Nat) :: Constraint where
   ValidBase m = (NonZeroNat m, KnownNat m)
 
--- type family Lg p n where
---   Lg p 0 = 0
---   Lg p n = Lg p (Div n p) + 1
+type family Lg p n where
+  Lg p 0 = 0
+  Lg p n = Lg p (Div n p) + 1
 
--- type family MaxBase p where
---   MaxBase p = p ^ (Lg p (2^8) - 1)
-
--- type Base m = (ValidBase m, ValidBase (MaxBase m))
+type Base m = (ValidBase m, ValidBase (MaxBase m))
 
 ------------------------------------------------------------
   
 class ValidBase p => Digital f p where
   base       :: Integral i => f p -> i
   digits'    :: f p -> InfList (Digit p)
-  fromDigits':: InfList (Digit p) -> f p
+  fromDigits':: InfList (Digit (MaxBase p)) -> f p
 
   digits :: Integral d => f p -> InfList d
   digits n = fromIntegral <$> digits' n
@@ -65,7 +62,10 @@ class Padic n where
   
 ------------------------------------------------------------
 
-type N = Word32
+type N = Word64
+
+type family MaxBase p where
+  MaxBase p = p ^ (Lg p (2^64) - 1)
 
 newtype Digit (m :: Nat) = Digit N
   deriving (Show, Num, Bounded, Eq, Real, Enum, Ord, Integral) via N
@@ -74,25 +74,28 @@ instance ValidBase p => Digital Digit p where
   base = fromIntegral . natVal
 
 data Z (p :: Nat) where
-   Z :: InfList (Digit p) -> Z p
+   Z :: InfList (Digit (MaxBase p)) -> Z p
 
 interior (Z ds) = ds
 
 maxBase :: Integral i => i -> i
-maxBase p = p ^ (ilog p (maxBound :: N))
+maxBase p = p ^ ilog p (maxBound :: N)
 
 ilog b x = floor (logBase (fromIntegral b) (fromIntegral x))
 
-demolish :: (ValidBase p) => Digit p -> [Digit p]
+demolish :: (Base p) => Digit (MaxBase p) -> [Digit p]
 demolish n = res
   where
-    b = base n
+    b1 = base n
+    b2 = base (head res)
     res
-      | n == 0 = replicate (ilog b (maxBase b)) 0
-      | otherwise = unfoldr go n
-    go 0 = Nothing
-    go n = let (q, r) = quotRem n b
-           in Just (fromIntegral r, q)
+      | n == 0 = replicate (ilog b2 b1) 0
+      | otherwise = toBase b2  n
+
+toDigits :: ValidBase p => Integral i => i -> [Digit p] 
+toDigits n = res
+  where
+    res = toBase (base (head res)) n 
 
 toBase :: (Integral i, Integral d) => i -> i -> [d]
 toBase b 0 = [0]
@@ -103,26 +106,25 @@ toBase b n = res
     go n = let (q, r) = quotRem n b
            in Just (fromIntegral r, q)
 
-
 -- превращает целое число в p-адическое
-toZ :: (ValidBase p, Integral i) => i -> Z p
+toZ :: (Base p, Integral i) => i -> Z p
 toZ n | n < 0 = - toZ (- n)
       | otherwise = res 
   where
-    res = Z $ toBase (maxBase (base res)) (fromIntegral n) +++ Inf.repeat 0
+    res = Z $ toDigits (fromIntegral n) +++ Inf.repeat 0
 
 -- смена знака на противоположный
-negZ :: (ValidBase p) => Z p -> Z p
+negZ :: (Base p) => Z p -> Z p
 negZ (Z ds) = fromDigits $ go ds
   where go (0 ::: t) = 0 ::: go t
         go (h ::: t) = p - h ::: Inf.map (\x -> p - x - 1) t
         p = base (Inf.head ds)
 
 -- выделяет из натурального числа перенос на следующий разряд
+carry :: (ValidBase p, Integral n) => n -> (n, Digit p)
 carry n =
-  let d = fromIntegral (n `mod` b)
-      b = maxBase (base d)
-  in (n `div` b, d)
+  let d = fromIntegral (n `mod` base d)
+  in (n `div` base d, d)
 
 -- поразрядное сложение с переносом
 --addZ :: (ValidBase p) => Z p -> Z p -> Z p
@@ -140,12 +142,12 @@ scaleZ s a =
   Inf.mapAccumL (\r x -> carry (fromIntegral s * fromIntegral x + r)) 0 a
 
 
-instance ValidBase p => Digital Z p where
+instance Base p => Digital Z p where
   digits' (Z ds) = Inf.concatMap demolish ds
   fromDigits' = Z
   base = fromIntegral . natVal
 
-instance ValidBase p => Num (Z p) where
+instance Base p => Num (Z p) where
   fromInteger = toZ
   Z a + Z b = Z $ addZ a b
   Z a * Z b = Z $ mulZ a b
