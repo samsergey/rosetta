@@ -1,7 +1,6 @@
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
---{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
---{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DerivingVia #-}
@@ -33,13 +32,15 @@ type family Lg p n where
   Lg p 0 = 0
   Lg p n = Lg p (Div n p) + 1
 
-type ZBase m = (Base m, Base (MaxBase m))
+type family ZBase m :: Constraint where
+  ZBase m = (Base m, Base (MaxBase m))
 
 ------------------------------------------------------------
   
 class Digital n where
-  base       :: Integral i => n -> i
-  digits     :: (Base p, n ~ f p) => n -> InfList (Digit p)
+  digits :: (Base p, n ~ f p) => n -> InfList (Digit p)
+  base :: Integral i => n -> i
+
 
 class Fixed n where
   precision :: Integral i => n -> i
@@ -60,8 +61,8 @@ newtype Digit (m :: Nat) = Digit N
   deriving (Show, Num, Bounded, Eq, Real, Enum, Ord, Integral) via N
 
 instance Base p => Digital (Digit p) where
-  base = fromIntegral . natVal
   digits = undefined
+  base = fromIntegral . natVal
 
 data Z p where
   Z :: ZBase p => InfList (Digit (MaxBase p)) -> Z p
@@ -121,10 +122,9 @@ mulZ a b = go b
 scaleZ s a =
   Inf.mapAccumL (\r x -> carry (fromIntegral s * fromIntegral x + r)) 0 a
 
-
 instance ZBase p => Digital (Z p) where
-  digits (Z ds) = Inf.concatMap expand ds      
   base = fromIntegral . natVal
+  digits (Z ds) = Inf.concatMap expand ds
 
 expand :: ZBase p => Digit (MaxBase p) -> [Digit p]
 expand n = res
@@ -132,8 +132,8 @@ expand n = res
     b1 = base n
     b2 = base (head res)
     res
-      | n == 0 = replicate (ilog b2 b1) 0
-      | otherwise = toBase b2  n
+     | n == 0 = replicate (ilog b2 b1) 0
+     | otherwise = toBase b2  n
 
 instance ZBase p => Num (Z p) where
   fromInteger = toZ
@@ -141,8 +141,14 @@ instance ZBase p => Num (Z p) where
   Z a * Z b = Z $ mulZ a b
   negate = negZ
 
-newtype Z' (p :: Nat) (prec :: Nat)  = Z' (Z p)
+newtype Z' (p :: Nat) (prec :: Nat) = Z' (Z p)
+
+instance ZBase p => Num (Z' p prec) where
+  fromInteger = Z' . fromInteger
 
 instance ZBase p => Digital (Z' p prec) where
   digits (Z' n) = digits n
   base (Z' n) = base n
+
+instance KnownNat prec => Fixed (Z' p prec) where
+  precision = fromIntegral . natVal
